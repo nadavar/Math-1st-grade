@@ -13,6 +13,10 @@ self.addEventListener('fetch', e => {
   const url = new URL(req.url);
   // Game page: try the internet first (to get updates), fall back to the saved copy.
   if (req.mode === 'navigate') {
+    // Only cache the first-grade entry page here; other games have their own URLs.
+    const entry = new URL('./index.html', self.location.href);
+    const home = new URL('./', self.location.href);
+    if (url.origin !== entry.origin || (url.pathname !== entry.pathname && url.pathname !== home.pathname)) return;
     e.respondWith(fetch(req).then(r => { const copy = r.clone(); caches.open(CACHE).then(c => c.put('./index.html', copy)); return r; })
       .catch(() => caches.match('./index.html')));
     return;
