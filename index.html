@@ -17,6 +17,20 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Bungee&display=swap" rel="stylesheet">
 <style>
+/* Expanded bank: new visual tasks use the existing adventure colors. */
+.number-word{font-size:clamp(24px,5vw,40px);font-weight:700;text-align:center;padding:18px;color:#4a1d8f}
+.coin-art{max-width:150px;margin:auto;text-align:center;font-size:20px;font-weight:700}.coin-art svg{width:100%}
+.money-list{font-size:clamp(22px,4vw,30px);line-height:1.8;text-align:center;padding:16px}
+.measure-art{width:100%;overflow-x:auto}.measure-art svg{display:block;width:100%;min-width:320px}
+.length-art{width:100%;max-width:460px;margin:auto}.length-art>div{display:flex;align-items:center;gap:12px;margin:20px 0;height:35px}
+.length-art b{width:25px}.length-art span{display:block;background:#ff6bb5;border:2px solid #b83875;height:28px;border-radius:5px}
+.data-art{width:100%;max-width:500px;margin:auto}.data-row{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid #decff5}
+.data-row>b{min-width:90px;font-size:18px}.data-row>span{display:flex;gap:6px;flex-wrap:wrap}.data-row i{font-style:normal;font-size:23px}
+.tally-five{position:relative;display:inline-block;font-family:monospace;letter-spacing:3px;margin-right:9px}
+.tally-five em{position:absolute;left:0;top:-3px;font-style:normal;font-size:45px;width:100%;transform:rotate(65deg);text-align:center}
+.tally-rest{font-family:monospace;letter-spacing:3px}.clock-choice .clock{width:110px!important;max-width:100%;margin:0 auto}
+.clock-choice{padding:8px!important}.clock-choice svg{display:block;width:100%;height:auto}
+
 :root{--bg-a:#5a1fa8;--bg-b:#2a1260;--bg-c:#140a2e;--pink:#ff4fa3;--gold:#ffc93c;--purple:#8b4fe8;--good:#2ed573;--ink:#1a1033}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;height:100%;font-family:'Fredoka',system-ui,sans-serif;color:var(--ink);overflow-x:hidden}
@@ -326,7 +340,7 @@ button{font-family:inherit;cursor:pointer;border:none}
   </div>
   <div class="panel" id="parentPanel" style="display:none;max-width:720px">
     <div class="phead"><h2>Parent corner: <span id="pWho"></span></h2><button class="ibtn" style="background:#f1e9ff;color:#4a1d8f" id="pBack">✕</button></div>
-    <div class="pnote" style="margin-top:8px">Skills follow Florida's B.E.S.T. Grade 1 math standards used by Broward County schools. <b>Level</b> goes up after 3 first-try correct answers in a row and down after 2 misses. <b>First-try %</b> counts only answers right on the first try. Each player's progress is kept separately.</div>
+    <div class="pnote" style="margin-top:8px">Practice follows Florida's B.E.S.T. Grade 1 math topics, including money, length, data and shapes. Every round has <b>10 questions</b>. <b>Level</b> goes up after at least 6 questions at that level and 4 consecutive unassisted first-try correct answers; it goes down after 2 consecutive first-try misses. <b>First-try %</b> excludes help and retries. Each player's saved progress is kept separately. Recent questions are remembered to reduce repetition.</div>
     <h3 class="ph3">Name</h3>
     <div style="display:flex;gap:8px"><input class="name-in" id="pName" style="font-size:20px;padding:8px"><button class="big" style="width:auto;margin:0;font-size:18px;padding:8px 18px" id="pNameSave">Save</button></div>
     <h3 class="ph3">Adventure theme</h3>
@@ -543,20 +557,50 @@ const THEMES={
   stickers:[['⚽','Soccer ball'],['🏀','Basketball'],['⚾','Baseball'],['🏈','Football'],['🎾','Tennis ball'],['🏐','Volleyball'],['🏓','Ping pong'],['🥅','Goal net'],['🏆','Trophy'],['🥇','Gold medal'],['🥈','Silver medal'],['🏅','Medal'],['👟','Fast shoes'],['🧢','Team cap'],['🎽','Jersey'],['⛳','Golf flag'],['🛼','Roller skate'],['🚴','Bike ride'],['⛸️','Ice skate'],['🏒','Hockey'],['🥎','Softball'],['📣','Cheer!'],['🎉','Party'],['⭐','All-star']]
  }
 };
+
+// Extra activities share each adventure's existing characters and saved profile.
+SLOTS.push(
+ {id:'market',skills:['coins','coin_total','bills'],area:'money',bg:'linear-gradient(140deg,#d99014,#b43a76)'},
+ {id:'measure',skills:['measure','length_order'],area:'measurement',bg:'linear-gradient(140deg,#168da2,#5265b7)'},
+ {id:'data',skills:['tally','pictograph'],area:'data',bg:'linear-gradient(140deg,#597f29,#178e78)'}
+);
+SLOTS.find(s=>s.id==='tokyo').skills.push('expanded','regroup');
+SLOTS.find(s=>s.id==='paris').skills.push('add100');
+SLOTS.find(s=>s.id==='london').skills.push('sub100');
+SLOTS.find(s=>s.id==='bonus').skills.push('solid','compose');
+Object.values(THEMES).forEach(t=>{
+ t.places.push(['Money Market','🪙','Coins and Bills',0],['Measuring Workshop','📏','Length Detectives',1],['Data Discovery','📊','Tallies and Picture Graphs',2]);
+ t.intro.push("Welcome to the market, NAME! Let's explore money!","Let's compare and measure, NAME!","Let's discover what the data tells us, NAME!");
+});
 const THEME_KEYS=Object.keys(THEMES);
 
 /* ================= storage & profiles ================= */
 const SKILL_NAMES={count:'Counting objects',next:'Number before / after',skip:'Skip counting',missing:'Missing number in a pattern',order:'Putting numbers in order',
   build:'Tens and ones: build a number',tens:'Tens and ones: digits',compare:'Comparing numbers (> < =)',tenmore:'10 more / 10 less',
   add:'Addition',sub:'Subtraction',missing_add:'Missing number (+)',missing_sub:'Missing number (−)',eq:'True / false equations',
-  word:'Multi-step word problems',clock:'Telling time',shape:'Shapes',frac:'Halves and fourths'};
+  word:'One- and two-step word problems',clock:'Telling time',shape:'Shapes',frac:'Halves and fourths'};
 const FOCUS_AREAS={counting:{label:'Counting & number order',skills:['count','next','skip','missing','order']},
   placevalue:{label:'Tens & ones',skills:['build','tens','compare','tenmore']},
   addition:{label:'Adding',skills:['add','missing_add']},
   subtraction:{label:'Taking away',skills:['sub','missing_sub']},
-  multistep:{label:'Multi-step problems',skills:['word']}};
+  multistep:{label:'Word problems (one and two steps)',skills:['word']}};
+Object.assign(SKILL_NAMES,{
+ expanded:'Number names and expanded form',regroup:'Different tens-and-ones representations',add100:'Two-digit plus one-digit',sub100:'Two-digit minus one-digit',
+ coins:'Coin values and a dollar',coin_total:'Count coins to 100 cents',bills:'Count dollar bills',measure:'Read a ruler',length_order:'Compare and order lengths',
+ tally:'Read and compare tallies',pictograph:'Read picture graphs',solid:'Recognize solid shapes',compose:'Build shapes from parts'
+});
+Object.assign(FOCUS_AREAS,{
+ money:{label:'Coins & bills',skills:['coins','coin_total','bills']},
+ measurement:{label:'Measuring & comparing lengths',skills:['measure','length_order']},
+ data:{label:'Tallies & picture graphs',skills:['tally','pictograph']},
+ geometry:{label:'Shapes & equal parts',skills:['shape','solid','compose','frac']},
+ time:{label:'Clocks & time',skills:['clock']}
+});
+FOCUS_AREAS.placevalue.skills.push('expanded','regroup');
+FOCUS_AREAS.addition.skills.push('add100');
+FOCUS_AREAS.subtraction.skills.push('sub100');
 const DEFAULT_FOCUS=['counting','subtraction','placevalue','multistep'];
-function newProfile(name,theme){ return {id:'p'+Date.now()+rnd(100,999),name,theme,stars:{},stickers:[],stats:{},level:{},streak:{},miss:{},focus:DEFAULT_FOCUS.slice()}; }
+function newProfile(name,theme){ return {id:'p'+Date.now()+rnd(100,999),name,theme,stars:{},stickers:[],stats:{},level:{},streak:{},miss:{},levelTrials:{},recent:[],focus:DEFAULT_FOCUS.slice()}; }
 let DB={profiles:[],current:null,voice:true,sound:true};
 let S=null; // current profile
 function load(){
@@ -567,6 +611,12 @@ function load(){
       if(old&&old.name){ const p=newProfile(old.name,'huntrix'); ['stars','stickers','stats','level','streak','miss','focus'].forEach(k=>{ if(old[k]) p[k]=old[k]; }); DB.profiles.push(p); DB.current=p.id; if(old.voice===false)DB.voice=false; if(old.sound===false)DB.sound=false; }
     }catch(e){}
   }
+  DB.profiles.forEach(p=>{
+    ['stars','stats','level','streak','miss','levelTrials'].forEach(k=>{if(!p[k]||typeof p[k]!=='object'||Array.isArray(p[k]))p[k]={};});
+    if(!Array.isArray(p.stickers))p.stickers=[];
+    if(!Array.isArray(p.focus))p.focus=DEFAULT_FOCUS.slice();
+    p.recent=Array.isArray(p.recent)?p.recent.filter(x=>typeof x==='string').slice(-120):[];
+  });
   S=DB.profiles.find(p=>p.id===DB.current)||null;
 }
 function save(){ try{ localStorage.setItem('mathShowdown',JSON.stringify(DB)); }catch(e){} }
@@ -655,7 +705,7 @@ const GEN={
       choices:numChoices(ans,3,0,130,[ans+step,ans-step,ans+1+(step===10?0:9)]).map(C), answer:ans,
       hint:`Say the numbers out loud. What number fits between <b>${seq[pos-1]}</b> and <b>${pos<4?seq[pos+1]:'…'}</b>?`, hintSay:`Say the numbers out loud. What fits between ${seq[pos-1]} and ${pos<4?seq[pos+1]:'the end'}?`,
       explain:`${seq.join(', ')}. The missing number is <b>${ans}</b>.`}; },
-  order(L){ const cnt=L===1?3:4,max=L===1?20:L===2?60:120,set=new Set();
+  order(L){ const cnt=L===1?3:4,max=L===1?20:L===2?60:100,set=new Set();
     if(L===3){ const t=rnd(1,8),o=rnd(1,9); if(t!==o){ set.add(t*10+o); set.add(o*10+t); } }
     while(set.size<cnt) set.add(rnd(1,max));
     const nums=shuffle([...set]),down=L===3&&Math.random()<.35,sorted=[...nums].sort((a,b)=>down?b-a:a-b);
@@ -671,7 +721,7 @@ const GEN={
     return {text:`How many ${askT?'TENS':'ONES'} are in ${n}?`, visual:`<div class="eqn">${n}</div>`, choices:numChoices(ans,3,0,9,[askT?o:t,ans+1,n]).map(C), answer:ans,
       hint:`In ${n}, the first digit tells the <b>tens</b> and the last digit tells the <b>ones</b>.`, hintSay:`In ${n}, the first digit tells the tens and the last digit tells the ones.`,
       explain:`${n} is <b>${t}</b> tens and <b>${o}</b> ones.`, onHint:()=>{$('#visual').innerHTML=sticks(t,o,true);}}; },
-  compare(L){ const max=L===1?20:L===2?60:120; let a=rnd(1,max),b=rnd(1,max);
+  compare(L){ const max=L===1?20:L===2?60:100; let a=rnd(1,max),b=rnd(1,max);
     if(L>1&&Math.random()<.35){ const t=rnd(1,8),o=rnd(1,9); if(t!==o){a=t*10+o;b=o*10+t;} }
     if(L>1&&Math.random()<.1) b=a;
     if(L===1){ if(a===b)b=a+rnd(1,4); const ans=Math.max(a,b);
@@ -686,7 +736,7 @@ const GEN={
   tenmore(L){ if(L===1){ const n=rnd(2,19),more=Math.random()<.6,ans=more?n+1:n-1;
       return {text:`What is 1 ${more?'more':'less'} than ${n}?`, visual:'', choices:numChoices(ans,3,0,30,[more?n-1:n+1,n+10]).map(C), answer:ans,
         hint:`1 ${more?'more':'less'} means count ${more?'up':'back'} one.`, hintSay:`One ${more?'more':'less'} means count ${more?'up':'back'} one.`, explain:`1 ${more?'more':'less'} than ${n} is <b>${ans}</b>.`, onHint:()=>showNumLine(n-3,n+3,[n])}; }
-    const n=L===2?rnd(12,79):rnd(20,109),more=Math.random()<.6||n<15,ans=more?n+10:n-10;
+    const n=L===2?rnd(12,79):rnd(20,89),more=Math.random()<.6||n<15,ans=more?n+10:n-10;
     return {text:`What is 10 ${more?'more':'less'} than ${n}?`, visual:sticks(Math.floor(n/10),n%10,false), choices:numChoices(ans,3,0,130,[more?n+1:n-1,more?n-10:n+10,ans+10]).map(C), answer:ans,
       hint:'Adding or taking 10 changes only the <b>tens</b> digit. The ones stay the same!', hintSay:'Ten more or ten less changes only the tens digit. The ones stay the same.',
       explain:`10 ${more?'more':'less'} than ${n} is <b>${ans}</b>.`, onHint:()=>{$('#visual').innerHTML=sticks(Math.floor(ans/10),ans%10,true);}}; },
@@ -771,6 +821,212 @@ const GEN={
       hint:`${parts===2?'Halves':'Fourths'} means <b>${parts} pieces that are all the same size</b>.`, hintSay:`${parts===2?'Halves':'Fourths'} means ${parts} pieces that are all the same size.`, explain:'The equal pieces are all the same size.'}; }
 };
 
+
+  
+  const BASE_GEN={...GEN};
+  const numWord=n=>n===100?'one hundred':n<20?['zero','one','two','three','four','five','six','seven','eight','nine','ten','eleven','twelve','thirteen','fourteen','fifteen','sixteen','seventeen','eighteen','nineteen'][n]:['','','twenty','thirty','forty','fifty','sixty','seventy','eighty','ninety'][Math.floor(n/10)]+(n%10?'-'+numWord(n%10):'');
+  function nq(text,answer,visual,hint,explain,audit,max=120){
+    return {text,say:text,answer,visual:visual||'',choices:numChoices(answer,3,0,max,[answer+1,answer-1,answer+10,answer-10]).map(C),hint,hintSay:hint.replace(/<[^>]*>/g,''),explain,audit};
+  }
+  function cq(text,answer,options,visual,hint,explain,audit){
+    return {text,say:text,answer,choices:shuffle([...new Set(options)]).map(v=>({label:String(v),value:v,small:true})),visual:visual||'',hint,hintSay:hint.replace(/<[^>]*>/g,''),explain,audit};
+  }
+  function partsPicture(kind,parts,equal,variant){
+    const rect=kind==='rect',horizontal=variant%2===1;
+    let s='<svg viewBox="0 0 180 130" role="img" aria-label="A shape divided into '+parts+' parts"><g stroke="#4a1d8f" stroke-width="3" fill="#ffe38a">';
+    if(rect){
+      s+='<rect x="20" y="15" width="140" height="100"/>';
+      if(parts===2&&variant%3===2)s+=equal?'<path d="M20 15L160 115"/>':'<path d="M20 15L110 115"/>';
+      else if(parts===4&&variant%3===2)s+=equal?'<path d="M90 15V115 M20 65H160"/>':'<path d="M55 15V115 M20 45H160"/>';
+      else for(let i=1;i<parts;i++){const ratio=equal?i/parts:(i===1?.13:i/parts);s+=horizontal?`<path d="M20 ${15+100*ratio}H160"/>`:`<path d="M${20+140*ratio} 15V115"/>`;}
+    }else{
+      s+='<circle cx="90" cy="65" r="50"/>';
+      if(parts===2)s+=equal?(horizontal?'<path d="M40 65H140"/>':'<path d="M90 15V115"/>'):'<path d="M65 22V108"/>';
+      else s+=equal?'<path d="M90 15V115 M40 65H140"/>':'<path d="M65 22V108 M40 65H140"/>';
+    }
+    return s+'</g></svg>';
+  }
+  function solidPicture(k){
+    const svg={
+      sphere:'<circle cx="90" cy="70" r="48" fill="#5ee6ff"/><ellipse cx="90" cy="70" rx="48" ry="14" fill="none" stroke-dasharray="5 4"/>',
+      cube:'<path d="M40 40L90 15L140 40L140 100L90 125L40 100Z" fill="#ffc93c"/><path d="M40 40L90 65L140 40 M90 65V125" fill="none"/>',
+      'rectangular prism':'<path d="M20 45L65 20L160 45L160 100L115 125L20 100Z" fill="#a57bff"/><path d="M20 45L115 70L160 45 M115 70V125" fill="none"/>',
+      cylinder:'<path d="M45 35V100C45 125 135 125 135 100V35" fill="#ff91c2"/><ellipse cx="90" cy="35" rx="45" ry="17" fill="#ffc8e2"/><path d="M45 100C45 120 135 120 135 100" fill="none"/>',
+      cone:'<path d="M90 15L145 105C145 125 35 125 35 105Z" fill="#82e3a1"/><ellipse cx="90" cy="105" rx="55" ry="15" fill="#a8f0bc"/>'
+    };
+    return `<div class="shape"><svg viewBox="0 0 180 140" role="img" aria-label="Solid shape"><g stroke="#4a1d8f" stroke-width="3">${svg[k]}</g></svg></div>`;
+  }
+  function coinPicture(name,side='front'){
+    const colors={penny:['#b87947','#e7b48b'],nickel:['#929aa2','#dce1e6'],dime:['#a2aab2','#e5e9ed'],quarter:['#89939b','#dae0e5']},c=colors[name];
+    return `<div class="coin-art"><svg viewBox="0 0 150 150" role="img" aria-label="${name}, ${side}"><circle cx="75" cy="75" r="65" fill="${c[1]}" stroke="${c[0]}" stroke-width="6"/><circle cx="75" cy="75" r="54" fill="none" stroke="${c[0]}" stroke-dasharray="2 4"/><text x="75" y="45" text-anchor="middle" fill="#4a3528" font-size="14" font-weight="bold">${name.toUpperCase()}</text>${side==='front'?'<path d="M60 95Q45 82 60 60Q80 43 91 65L100 78L90 80L90 101L108 113H45Z" fill="'+c[0]+'"/>':'<path d="M45 105H105V75H45Z M40 73L75 52L110 73Z M53 80V100 M68 80V100 M83 80V100 M98 80V100" fill="'+c[0]+'" stroke="'+c[0]+'" stroke-width="3"/>'}</svg><span>${name}</span></div>`;
+  }
+  function rulerPicture(n,unit){
+    const total=Math.max(n+1,6),w=500,step=440/total;
+    let s=`<svg viewBox="0 0 500 140" role="img" aria-label="Object aligned with zero and ending at ${n} ${unit}"><rect x="30" y="20" width="${n*step}" height="25" rx="5" fill="#ff4fa3"/><rect x="25" y="65" width="450" height="50" fill="#fff2b1" stroke="#8b6e2e"/>`;
+    for(let i=0;i<=total;i++)s+=`<path d="M${30+i*step} 65V85" stroke="#5b4726" stroke-width="2"/><text x="${30+i*step}" y="104" text-anchor="middle" font-size="14">${i}</text>`;
+    return `<div class="measure-art">${s}<text x="250" y="135" text-anchor="middle" font-size="14">Each interval is one ${unit}</text></svg></div>`;
+  }
+  function lengthPicture(values){
+    return '<div class="length-art">'+values.map((n,i)=>`<div><b>${'ABC'[i]}</b><span style="width:${n*8}%"></span></div>`).join('')+'</div>';
+  }
+  function tallyPicture(groups){
+    return '<div class="data-art">'+groups.map(([label,n])=>`<div class="data-row"><b>${label}</b><span aria-label="${n} tally marks">${Array.from({length:Math.floor(n/5)},()=>'<i class="tally-five" aria-hidden="true">||||<em>/</em></i>').join('')}<i class="tally-rest" aria-hidden="true">${'|'.repeat(n%5)}</i></span></div>`).join('')+'</div>';
+  }
+  function pictoPicture(groups){
+    return '<div class="data-art"><div class="tapnote">Each ⭐ stands for one.</div>'+groups.map(([label,n])=>`<div class="data-row"><b>${label}</b><span aria-label="${n} items">${'<i aria-hidden="true">⭐</i>'.repeat(n)}</span></div>`).join('')+'</div>';
+  }
+  GEN.expanded=function(L){
+    const n=rnd(L===1?10:20,L===1?30:L===2?70:100),t=Math.floor(n/10)*10,o=n%10,mode=L===1?0:rnd(0,L===2?1:2);
+    if(mode===0)return nq(`What number is ${t} + ${o}?`,n,sticks(Math.floor(n/10),o,true),'Put the tens and ones together.',`${t} + ${o} = <b>${n}</b>.`,{kind:'expanded',n,t,o,mode});
+    if(mode===1)return cq(`Which expanded form matches ${n}?`,`${t} + ${o}`,[`${t} + ${o}`,`${Math.floor(n/10)} + ${o}`,`${t} + ${o+1}`],`<div class="eqn">${n}</div>`,'Expanded form separates tens and ones.',`${n} = <b>${t} + ${o}</b>.`,{kind:'expanded',n,t,o,mode});
+    return nq(`Which number is ${numWord(n)}?`,n,`<div class="number-word">${numWord(n)}</div>`,'Listen to the tens, then the ones.',`${numWord(n)} is <b>${n}</b>.`,{kind:'expanded',n,t,o,mode});
+  };
+  GEN.regroup=function(L){
+    const t=rnd(2,L===1?3:L===2?6:9),o=rnd(0,9),n=t*10+o,keep=L<3?t-1:rnd(0,t-1),ones=n-keep*10;
+    return nq(`${n} is ${keep} tens and how many ones?`,ones,sticks(keep,ones,false),'Trade each missing ten for ten ones.',`${keep} tens and ${ones} ones make <b>${n}</b>.`,{kind:'regroup',n,keep,ones},100);
+  };
+  GEN.add100=function(L){
+    const a=rnd(L===1?10:20,L===1?35:L===2?69:90),b=rnd(0,Math.min(9,100-a)),sum=a+b;
+    return nq(`What is ${a} + ${b}?`,sum,sticks(Math.floor(a/10),a%10,false)+`<div class="tapnote">Add ${b} more ones.</div>`,'Add the ones. If you make ten ones, trade them for a ten.',`${a} + ${b} = <b>${sum}</b>.`,{kind:'add',terms:[a,b]},100);
+  };
+  GEN.sub100=function(L){
+    const a=rnd(L===1?11:20,L===1?35:L===2?69:99),b=rnd(0,9),answer=a-b;
+    return nq(`What is ${a} ${MINUS} ${b}?`,answer,sticks(Math.floor(a/10),a%10,false),'Count back, or trade one ten for ten ones if needed.',`${a} ${MINUS} ${b} = <b>${answer}</b>.`,{kind:'sub',a,b},100);
+  };
+  GEN.add=function(L){
+    if(Math.random()<.3){const q=BASE_GEN.add(L),expr=q.visual.match(/<div class="eqn">([^=]+) = /);q.audit={kind:'add',terms:expr[1].match(/\d+/g).map(Number)};return q;}
+    const mode=rnd(0,L===1?2:L===2?4:5);let terms;
+    if(mode===0){const a=rnd(0,L===1?10:20);terms=[a,0];}
+    else if(mode===1){const a=rnd(0,L===1?5:10);terms=[a,a];}
+    else if(mode===2){const a=rnd(0,L===1?10:19);terms=[a,(L===1?10:20)-a];}
+    else if(mode===3){const a=rnd(2,9);terms=[a,a+1];}
+    else if(mode===4){const a=rnd(1,9),b=10-a,c=rnd(0,10);terms=shuffle([a,b,c]);}
+    else {const a=rnd(1,9),b=rnd(1,10),c=rnd(0,20-a-b);terms=[a,b,c];}
+    const ans=terms.reduce((a,b)=>a+b,0),expr=terms.join(' + ');
+    return nq(`What is ${expr}?`,ans,tenFrames(terms[0],terms.slice(1).reduce((a,b)=>a+b,0)),terms.includes(0)?'Adding zero keeps the amount the same.':'Look for a double or a pair that makes ten.',`${expr} = <b>${ans}</b>.`,{kind:'add',terms},20);
+  };
+  GEN.sub=function(L){
+    if(Math.random()<.4){
+      const a=rnd(0,L===1?10:20),b=Math.random()<.5?0:a,ans=a-b;
+      return nq(`What is ${a} ${MINUS} ${b}?`,ans,minionGrid(a),b===0?'Taking away zero leaves the amount unchanged.':'Taking away all of them leaves zero.',`${a} ${MINUS} ${b} = <b>${ans}</b>.`,{kind:'sub',a,b},20);
+    }
+    const q=BASE_GEN.sub(L),m=(q.say||'').match(/What is (\d+) minus (\d+)/);
+    if(m)q.audit={kind:'sub',a:Number(m[1]),b:Number(m[2])};
+    else{const nums=q.visual.match(/<div class="eqn">(\d+) − (\d+)/);if(nums)q.audit={kind:'sub',a:+nums[1],b:+nums[2]};}
+    return q;
+  };
+  GEN.missing_add=function(L){
+    const total=rnd(L===1?0:5,L===1?10:20),a=rnd(0,total),b=total-a,pos=L===1?1:rnd(0,2),answer=[a,b,total][pos];
+    let expr=pos===0?`? + ${b} = ${total}`:pos===1?`${a} + ? = ${total}`:`${a} + ${b} = ?`;
+    if(L===3&&Math.random()<.5){const sides=expr.split(' = ');expr=sides[1]+' = '+sides[0];}
+    return nq('Find the mystery number: '+expr,answer,`<div class="eqn">${expr}</div>`, 'The two sides must show the same amount.',`${a} + ${b} = ${total}. The missing number is <b>${answer}</b>.`,{kind:'missing_add',a,b,total,pos},20);
+  };
+  GEN.missing_sub=function(L){
+    const a=rnd(0,L===1?10:20),b=rnd(0,a),c=a-b,pos=L===1?1:rnd(0,2),answer=[a,b,c][pos];
+    let expr=pos===0?`? ${MINUS} ${b} = ${c}`:pos===1?`${a} ${MINUS} ? = ${c}`:`${a} ${MINUS} ${b} = ?`;
+    if(L===3&&Math.random()<.5){const sides=expr.split(' = ');expr=sides[1]+' = '+sides[0];}
+    return nq('Find the mystery number: '+expr,answer,`<div class="eqn">${expr}</div>`,'Use addition to check the subtraction.',`${a} ${MINUS} ${b} = ${c}. The missing number is <b>${answer}</b>.`,{kind:'missing_sub',a,b,c,pos},20);
+  };
+  GEN.eq=function(L){
+    if(L===3&&Math.random()<.4){const q=BASE_GEN.eq(L),expr=q.visual.match(/<div class="eqn">([^<]+)<\/div>/)[1],sides=expr.split(' = ');q.audit={kind:'equality_expr',left:sides[0].match(/\d+/g).map(Number),right:sides[1].match(/\d+/g).map(Number)};return q;}
+    const sub=Math.random()<.5,a=rnd(0,L===1?10:20),b=sub?rnd(0,a):rnd(0,(L===1?10:20)-a),value=sub?a-b:a+b,truth=Math.random()<.5,shown=truth?value:(value===0?1:value-1),reverse=Math.random()<.5;
+    const expr=`${a} ${sub?MINUS:'+'} ${b}`,text=reverse?`${shown} = ${expr}`:`${expr} = ${shown}`;
+    return {...cq('Is this TRUE or FALSE?',truth?'T':'F',['T','F'],`<div class="eqn">${text}</div>`,'The equal sign means the same amount on both sides.',`${expr} is ${value}. ${truth?'Both sides match.':'The sides do not match.'}`,{kind:'eq',a,b,sub,shown,reverse}),say:'Is this true or false? '+text,choices:[{label:'True ✔',value:'T',small:true},{label:'False ✘',value:'F',small:true}]};
+  };
+  GEN.word=function(L){
+    if(L===1){
+      const a=rnd(1,8),b=rnd(0,10-a),sub=Math.random()<.5,thing=pick(T().story.items),total=a+b,answer=sub?a:total;
+      const text=sub?`You have ${pl(total,thing)}. You give away ${b}. How many ${thing} are left?`:`You have ${pl(a,thing)}. You get ${b} more. How many ${thing} do you have now?`;
+      return {...nq(text,answer,objGrid(sub?total:a,'⭐'),'Choose addition for getting more and subtraction for giving away.',`${sub?total:a} ${sub?MINUS:'+'} ${b} = <b>${answer}</b>.`,{kind:'story_one',a:sub?total:a,b,sub},20),story:true};
+    }
+    let q;for(let i=0;i<50;i++){q=BASE_GEN.word(L);if(q.answer<=20)break;}
+    if(q.answer>20)q=BASE_GEN.word(2);q.audit={kind:'story',solved:q.solved,answer:q.answer};return q;
+  };
+  GEN.clock=function(L){
+    const h=rnd(1,12),m=L===1?0:(Math.random()<.6?30:0),fmt=(a,b)=>`${a}:${b?'30':'00'}`,ans=fmt(h,m),mode=L===1?'analog':L===2?pick(['analog','digital']):pick(['analog','digital','words','minutes']);
+    const times=shuffle([ans,fmt(h%12+1,m),fmt(h,m?0:30),fmt((h+10)%12+1,m)]);
+    if(mode==='minutes')return nq('The long hand points to '+(m?'6':'12')+'. How many minutes past the hour is it?',m,clockSVG(h,m),'A long hand at 12 means zero minutes; at 6 means thirty minutes.',`It is ${m} minutes past the hour.`,{kind:'clock',h,m,mode},30);
+    if(mode==='digital')return {text:`Which clock shows ${ans}?`,say:`Which clock shows ${h} ${m?'thirty':"o'clock"}?`,visual:`<div class="eqn">${ans}</div>`,choices:times.map(v=>{const [H,M]=v.split(':').map(Number);return {label:v,value:v,html:clockSVG(H,M),small:true,aria:'Clock '+v};}),answer:ans,hint:'Match the hour hand first, then the minute hand.',explain:`The correct clock shows <b>${ans}</b>.`,audit:{kind:'clock',h,m,mode}};
+    return {...cq(mode==='words'?`Which time means ${m?'half past '+numWord(h):numWord(h)+" o'clock"}?`:'What time is it?',ans,times,mode==='analog'?clockSVG(h,m):'',m?'The long hand is at 6. Read the hour it has just passed.':'The long hand is at 12. Read the hour hand.',`It is <b>${ans}</b>.`,{kind:'clock',h,m,mode}),say:mode==='words'?`Which time means ${m?'half past '+numWord(h):numWord(h)+" o'clock"}?`:'What time is shown on the clock?'};
+  };
+  GEN.shape=function(L){
+    const keys=Object.keys(SHAPES),k=pick(keys),rotation=L===1?0:pick([0,30,45,90]),mode=L===1?'name':pick(L===2?['name','sides']:['name','sides','corners']);
+    const art=`<div class="shape"><svg viewBox="0 0 160 160" role="img" aria-label="Flat shape"><g transform="translate(20 20) rotate(${rotation} 60 60)" fill="#5ee6ff" stroke="#4a1d8f" stroke-width="4">${SHAPES[k].svg}</g></svg></div>`;
+    if(mode==='name')return cq('What is the name of this shape?',k,[k,...shuffle(keys.filter(x=>x!==k)).slice(0,2)],art,'Look at sides and corners, even when the shape is turned.',`It is a <b>${k}</b>.`,{kind:'shape',k,mode,rotation});
+    const answer=SHAPES[k].sides;return nq(`How many ${mode==='corners'?'corners':'straight sides'} does this shape have?`,answer,art,'Go all the way around and count each one once.',`A ${k} has <b>${answer}</b> ${mode==='corners'?'corners':'straight sides'}.`,{kind:'shape',k,mode,rotation},8);
+  };
+  GEN.solid=function(L){
+    const keys=['sphere','cube','cone','cylinder','rectangular prism'],k=pick(L===1?keys.slice(0,3):keys),mode=L<3?'name':pick(['name','real']);
+    const objects={sphere:'a ball',cube:'a cube-shaped die',cone:'a party hat',cylinder:'a soup can','rectangular prism':'a shoe box'};
+    return cq(mode==='name'?'What solid shape is this?':`Which solid models ${objects[k]}?`,k,[k,...shuffle(keys.filter(x=>x!==k)).slice(0,L===1?1:2)],(mode==='real'?'':solidPicture(k)),'Think about flat faces, curved surfaces, and pointed corners.',`The shape is a <b>${k}</b>.`,{kind:'solid',k,mode});
+  };
+  GEN.frac=function(L){
+    const parts=L===1?2:pick([2,4]),kind=pick(['circle','rect']),variant=rnd(0,5),mode=L===1?'equal':L===2?pick(['equal','name']):pick(['equal','name','whole','size']);
+    if(mode==='equal'){const at=rnd(0,1);return {...cq(`Which shape has ${parts===2?'two equal halves':'four equal fourths'}?`,at,[0,1],`<div class="fracs"><div class="frac">${partsPicture(kind,parts,at===0,variant)}</div><div class="frac">${partsPicture(kind,parts,at===1,variant)}</div></div>`,'Every part must be the same size.',`The equal shares are all the same size.`,{kind:'frac',parts,shape:kind,variant,mode,at}),choices:[{label:'👈 This one',value:0,small:true},{label:'This one 👉',value:1,small:true}]};}
+    if(mode==='size')return cq('The same-sized circles are cut into halves or fourths. Which pieces are larger?','halves',['halves','fourths'],`<div class="fracs"><div class="frac">${partsPicture('circle',2,true,0)}</div><div class="frac">${partsPicture('circle',4,true,0)}</div></div>`,'More equal pieces means each piece is smaller.','A half is larger than a fourth of the same-sized whole.',{kind:'frac',mode});
+    const answer=mode==='whole'?(parts===2?'two halves':'four fourths'):(parts===2?'halves':'fourths');
+    return cq(mode==='whole'?`How do we name all ${parts} equal parts shown together?`:'What are these equal parts called?',answer,mode==='whole'?['two halves','four fourths','one half']:['halves','fourths','unequal pieces'],partsPicture(kind,parts,true,variant),`Count the ${parts} equal parts.`,`${parts} equal parts make ${parts===2?'halves':'fourths'}.`,{kind:'frac',parts,shape:kind,variant,mode});
+  };
+  GEN.compose=function(L){
+    const mode=pick(L===1?['circle','square']:L===2?['circle','square','rectangle']:['circle','square','rectangle','solid']);
+    if(mode==='solid')return cq('Two equal cubes are stacked face to face. Which larger solid can they make?','rectangular prism',['rectangular prism','sphere','cone'],solidPicture('rectangular prism'),'Stack flat faces together without gaps.','Two cubes can compose a rectangular prism.',{kind:'compose',mode});
+    const circle=mode==='circle';
+    return cq(circle?'Two matching semicircles join along their straight edges. What whole shape do they make?':mode==='square'?'Two matching triangles join along this diagonal. What whole shape do they make?':'Two matching rectangular parts join as shown. What whole shape do they make?',circle?'circle':mode==='square'?'square':'rectangle',circle?['circle','triangle','rectangle']:mode==='square'?['square','circle','hexagon']:['rectangle','circle','triangle'],(circle?partsPicture('circle',2,true,0):mode==='square'?partsPicture('rect',2,true,2).replace('width="140"','width="100"').replace(/160/g,'120'):partsPicture('rect',2,true,0)),'Put matching pieces together with no gaps or overlaps.',circle?'Two semicircles make a circle.':mode==='square'?'These two matching triangular halves make a square.':'These two matching rectangular parts make a rectangle.',{kind:'compose',mode});
+  };
+  GEN.coins=function(L){
+    const names=L===1?['penny','nickel']:['penny','nickel','dime','quarter'],name=pick(names),value={penny:1,nickel:5,dime:10,quarter:25}[name],dollar=L===3&&Math.random()<.5,answer=dollar?100/value:value;
+    const q=nq(dollar?`How many ${name==='penny'?'pennies':name+'s'} equal one dollar?`:`How many cents is one ${name} worth?`,answer,coinPicture(name,Math.random()<.5?'front':'back'),dollar?`A dollar is 100 cents. Count by ${value}s.`:'A penny is 1¢, a nickel 5¢, a dime 10¢, and a quarter 25¢.',dollar?`${answer} ${name==='penny'?'pennies':name+'s'} make 100¢, or $1.`:`A ${name} is worth <b>${value}¢</b>.`,{kind:'coins',name,value,dollar},100);
+    if(!dollar)q.choices=q.choices.map(c=>({...c,label:c.value+'¢'}));return q;
+  };
+  GEN.coin_total=function(L){
+    const pennies=rnd(0,L===1?6:9),nickels=L===1?rnd(0,1):rnd(0,L===2?4:7),dimes=L===1?0:rnd(0,Math.floor((100-pennies-5*nickels)/10)),answer=pennies+5*nickels+10*dimes;
+    return {...nq(`What is the total value in cents?`,answer,`<div class="money-list">Pennies: ${pennies}<br>Nickels: ${nickels}<br>Dimes: ${dimes}</div>`, 'Count the dimes by tens, nickels by fives, then add pennies.',`${dimes} dimes + ${nickels} nickels + ${pennies} pennies = <b>${answer}¢</b>.`,{kind:'coin_total',pennies,nickels,dimes},100),say:`There are ${pennies} pennies, ${nickels} nickels, and ${dimes} dimes. What is their total value in cents?`};
+  };
+  GEN.bills=function(L){
+    const ones=rnd(0,L===1?5:9),fives=L===1?rnd(0,1):rnd(0,L===2?4:7),tens=L===1?0:rnd(0,Math.floor((100-ones-5*fives)/10)),answer=ones+5*fives+10*tens;
+    const q=nq('How many dollars altogether?',answer,`<div class="money-list">$1 bills: ${ones}<br>$5 bills: ${fives}<br>$10 bills: ${tens}</div>`,'Count ten-dollar bills by tens, five-dollar bills by fives, then add ones.',`${tens*10} + ${fives*5} + ${ones} = <b>$${answer}</b>.`,{kind:'bills',ones,fives,tens},100);
+    q.say=`There are ${ones} one-dollar bills, ${fives} five-dollar bills, and ${tens} ten-dollar bills. How many dollars altogether?`;q.choices=q.choices.map(c=>({...c,label:'$'+c.value}));return q;
+  };
+  GEN.measure=function(L){
+    const n=rnd(1,L===1?5:L===2?10:15),unit=L===1?'inch':pick(['inch','centimeter']);
+    return nq(`How many ${unit==='inch'?'inches':'centimeters'} long is the pink object?`,n,rulerPicture(n,unit),'Start at zero. Read the ruler where the object ends.',`The object starts at 0 and ends at ${n}: <b>${n} ${unit==='inch'?'inches':'centimeters'}</b>.`,{kind:'measure',n,unit},20);
+  };
+  GEN.length_order=function(L){
+    const count=L===1?2:3,set=new Set();while(set.size<count)set.add(rnd(2,10));const values=[...set],mode=L<3?pick(['longest','shortest']):pick(['longest','shortest','order']);
+    if(mode==='order'){
+      const ordered=values.map((v,i)=>({v,label:'ABC'[i]})).sort((a,b)=>a.v-b.v).map(x=>x.label).join(', ');
+      return cq('Which order goes from shortest to longest?',ordered,[ordered,'A, B, C','C, B, A',values.map((v,i)=>'ABC'[i]).sort(()=>Math.random()-.5).join(', ')],lengthPicture(values),'Compare all three bars from the same starting line.',`Shortest to longest: <b>${ordered}</b>.`,{kind:'length_order',values,mode});
+    }
+    const best=mode==='longest'?Math.max(...values):Math.min(...values),answer='ABC'[values.indexOf(best)];
+    return cq(`Which object is ${mode}?`,answer,values.map((v,i)=>'ABC'[i]),lengthPicture(values),'Line up the starting ends and compare the other ends.',`Object <b>${answer}</b> is ${mode}.`,{kind:'length_order',values,mode});
+  };
+  GEN.tally=function(L){
+    const a=rnd(1,L===1?5:L===2?15:10),b=L===3?rnd(1,10):0,mode=L===3?pick(['total','difference']):'read',answer=mode==='total'?a+b:mode==='difference'?Math.abs(a-b):a,groups=L===3?[['Group A',a],['Group B',b]]:[['Stars',a]];
+    return nq(mode==='read'?'How many tally marks?':mode==='total'?'How many tally marks altogether?':'How many MORE marks does the larger group have?',answer,tallyPicture(groups),'Each crossed bundle has five tally marks. Count bundles, then extras.',mode==='read'?`There are <b>${a}</b> marks.`:`${mode==='total'?a:Math.max(a,b)} ${mode==='total'?'+':MINUS} ${mode==='total'?b:Math.min(a,b)} = <b>${answer}</b>.`,{kind:'tally',a,b,mode},20);
+  };
+  GEN.pictograph=function(L){
+    const values=[rnd(1,L===1?4:6),rnd(1,L===1?4:6),...(L>1?[rnd(1,6)]:[])],labels=['Singing','Dancing','Drawing'],mode=L===1?'read':L===2?pick(['read','total']):pick(['total','difference','most']);
+    const answer=mode==='read'?values[0]:mode==='total'?values.reduce((a,b)=>a+b,0):mode==='difference'?Math.abs(values[0]-values[1]):Math.max(...values);
+    const text=mode==='read'?'How many chose Singing?':mode==='total'?'How many choices are shown altogether?':mode==='difference'?'How many MORE chose the larger of Singing or Dancing?':'What is the number of choices in the largest category?';
+    return nq(text,answer,pictoPicture(values.map((n,i)=>[labels[i],n])),'Each star stands for one choice. Count the categories you need.',`The answer is <b>${answer}</b>.`,{kind:'pictograph',values,mode},20);
+  };
+  function questionKey(k,q){
+    return k+'|'+JSON.stringify(q.audit||{prompt:q.say||q.text,answer:q.answer,sorted:q.sorted,down:q.down,visual:q.say?undefined:q.visual});
+  }
+  function roundSkill(){
+    const least=Math.min(...R.stage.skills.map(k=>R.skillUses[k]||0));
+    return weightedPick(R.stage.skills.filter(k=>(R.skillUses[k]||0)===least),R.boost);
+  }
+  function freshQuestion(k){
+    let best=null,bestScore=Infinity;
+    for(let n=0;n<40;n++){
+      const q=GEN[k](lvl(k)),key=questionKey(k,q),score=(key===R.last?1000:0)+(R.seen.includes(key)?100:0)+(S.recent.includes(key)?10:0);
+      if(score<bestScore){best={q,key};bestScore=score;}if(score===0)break;
+    }
+    R.last=best.key;R.seen.push(best.key);R.skillUses[k]=(R.skillUses[k]||0)+1;
+    S.recent.push(best.key);S.recent=S.recent.slice(-120);save();return best.q;
+  }
+
 function skillWeight(k,boost){ let w=1; const st=S.stats[k]; if(st&&st.n>=4&&st.r/st.n<.7) w+=1.5;
   if(boost) for(const a of S.focus) if(FOCUS_AREAS[a]&&FOCUS_AREAS[a].skills.includes(k)) w+=2; return w; }
 function weightedPick(list,boost){ const ws=list.map(k=>skillWeight(k,boost)); let r=Math.random()*ws.reduce((a,b)=>a+b,0); for(let i=0;i<list.length;i++){ r-=ws[i]; if(r<=0) return list[i]; } return list[list.length-1]; }
@@ -823,7 +1079,7 @@ function renderMap(){
   const nextI=SLOTS.findIndex(s=>!S.stars[s.id]);
   $('#mapBubble').textContent=nextI>=0?`Hi ${NAME()}! Next stop: ${t.places[nextI][0]}! Or try the Daily Showdown ✨`:`WOW ${NAME()}, you finished every stage! Can you get 3 stars everywhere?`;
   $('#cityGrid').innerHTML=SLOTS.map((s,i)=>{ const pl=t.places[i],st=S.stars[s.id]||0,f=s.area&&S.focus.includes(s.area);
-    return `<button class="city" style="background:${s.bg}" data-id="${s.id}"><span class="flag">${pl[1]}</span>${f?'<span class="focus">⚡ Extra practice</span>':''}<div class="cn">${pl[0]}</div><div class="ct">${pl[2]}</div><div class="st">${'⭐'.repeat(st)}${'<span style="opacity:.3">⭐</span>'.repeat(3-st)}</div>${kid(t.crew[pl[3]])}</button>`; }).join('');
+    return `<button class="city" style="background:${s.bg}" data-id="${s.id}"><span class="flag">${pl[1]}</span>${f?'<span class="focus">⚡ Focus area</span>':''}<div class="cn">${pl[0]}</div><div class="ct">${pl[2]}</div><div class="st">${'⭐'.repeat(st)}${'<span style="opacity:.3">⭐</span>'.repeat(3-st)}</div>${kid(t.crew[pl[3]])}</button>`; }).join('');
   document.querySelectorAll('.city').forEach(b=>b.onclick=()=>{ sfx.tap(); startStage(b.dataset.id); });
   show('map');
 }
@@ -840,7 +1096,7 @@ function startStage(id){
     st={id:'daily',place:'Daily Showdown',guide:pick(t.crew),skills:[...new Set(skills)],area:'daily',intro:`Daily Showdown! Let's go, ${NAME()}!`}; }
   else { const i=SLOTS.findIndex(s=>s.id===id),s=SLOTS[i],pl=t.places[i]; st={id,place:pl[0],guide:t.crew[pl[3]],skills:s.skills,area:s.area,intro:nm(t.intro[i])}; }
   const boost=st.area==='daily'||(st.area&&S.focus.includes(st.area));
-  R={stage:st,total:boost?10:8,idx:0,notes:0,missed:0,q:null,tries:0,locked:false,last:'',boost,color:pick(VILLAIN_COLORS)};
+  R={stage:st,total:10,idx:0,notes:0,missed:0,q:null,tries:0,hinted:false,locked:false,last:'',seen:[],skillUses:{},boost,color:pick(VILLAIN_COLORS)};
   $('#playGuide').innerHTML=kid(st.guide,'bob'); $('#villainBox').innerHTML=t.villain(R.color);
   $('#playBubble').textContent=st.intro; updateMeter(); show('play'); setTimeout(nextQ,50);
 }
@@ -848,25 +1104,33 @@ function bubble(s){ $('#playBubble').textContent=s; }
 function updateMeter(){ const t=T(),p=Math.min(1,R.notes/R.total); $('#mFill').style.width=(p*100)+'%'; $('#mLbl').textContent=p>=1?t.meterFull:`${t.meter} ${Math.round(p*100)}%`;
   $('#qCount').textContent=`${Math.min(R.idx+1,R.total)}/${R.total}`; const v=$('#villainBox'); v.style.opacity=1-p*.7; v.style.transform=`scale(${1-p*.5})`; }
 function nextQ(){
-  let q,k,guard=0;
-  do{ k=weightedPick(R.stage.skills,R.boost); q=GEN[k](lvl(k)); guard++; } while((q.say||q.text)+JSON.stringify(q.answer)===R.last&&guard<8);
-  q.skill=k; R.last=(q.say||q.text)+JSON.stringify(q.answer); R.q=q; R.tries=0; R.locked=false; R.orderPos=0; R.tapN=0;
+  const k=roundSkill(),q=freshQuestion(k);
+  q.skill=k; R.q=q; R.tries=0; R.hinted=false; R.locked=false; R.orderPos=0; R.tapN=0;
   const qt=$('#qText'); qt.textContent=q.text; qt.classList.toggle('story',!!q.story);
   $('#visual').innerHTML=q.visual||''; $('#hint').classList.remove('on'); $('#hint').innerHTML=''; $('#gotIt').classList.remove('on');
   const ch=$('#choices'); ch.innerHTML='';
   if(q.type==='order'){
     $('#visual').innerHTML=`<div style="width:100%"><div class="order-lbl"><span>${q.down?'biggest':'smallest'}</span><span>${q.down?'smallest':'biggest'}</span></div><div class="order-slots">${q.sorted.map(()=>'<div></div>').join('')}</div></div>`;
     q.nums.forEach(n=>{ const b=document.createElement('button'); b.className='choice'; b.textContent=n; b.onclick=()=>orderTap(b,n); ch.appendChild(b); });
-  } else q.choices.forEach(c=>{ const b=document.createElement('button'); b.className='choice'+(c.small||String(c.label).length>3?' small':''); b.textContent=c.label; b.onclick=()=>choose(b,c.value); ch.appendChild(b); });
+  } else q.choices.forEach((c,i)=>{ const b=document.createElement('button'); b.className='choice'+(c.small||String(c.label).length>3?' small':''); b.dataset.choiceIndex=i; if(c.html){b.innerHTML=c.html;b.classList.add('clock-choice');b.setAttribute('aria-label',c.aria||c.label);}else b.textContent=c.label; b.onclick=()=>choose(b,c.value); ch.appendChild(b); });
   if(q.tappable) document.querySelectorAll('#visual .obj').forEach(o=>o.onclick=()=>{ if(o.classList.contains('tapped'))return; R.tapN++; o.dataset.n=R.tapN; o.classList.add('tapped'); sfx.tap(); say(String(R.tapN)); });
   updateMeter(); const pre=R.idx===0?R.stage.intro+' ':''; setTimeout(()=>say(pre+(q.say||q.text)),250);
 }
 function praise(){ return nm(pick([...T().praise,'Nailed it!','Super sparkle! ✨','Yes, NAME! Keep going!',"You're a star, NAME!"])); }
-function recordFirst(ok){ const k=R.q.skill; S.stats[k]=S.stats[k]||{n:0,r:0}; S.stats[k].n++; if(ok) S.stats[k].r++;
-  if(ok){ S.miss[k]=0; S.streak[k]=(S.streak[k]||0)+1; if(S.streak[k]>=3&&lvl(k)<3){ S.level[k]=lvl(k)+1; S.streak[k]=0; setTimeout(()=>{toast('LEVEL UP! 🚀',1300);sfx.level();},900); } }
-  else { S.streak[k]=0; S.miss[k]=(S.miss[k]||0)+1; if(S.miss[k]>=2&&lvl(k)>1){ S.level[k]=lvl(k)-1; S.miss[k]=0; } }
-  save(); }
-function onCorrect(){ R.locked=true; const first=R.tries===0; if(first) recordFirst(true); R.notes+=first?1:.5; if(!first) R.missed++;
+function recordFirst(ok,assisted){
+  const k=R.q.skill;S.stats[k]=S.stats[k]||{n:0,r:0};S.stats[k].n++;if(ok)S.stats[k].r++;
+  let practice=S.levelTrials[k];if(!practice||practice.at!==lvl(k))practice={at:lvl(k),n:0,right:0};
+  practice.n++;if(ok)practice.right++;S.levelTrials[k]=practice;
+  if(ok){
+    S.miss[k]=0;S.streak[k]=(S.streak[k]||0)+1;
+    if(practice.n>=6&&S.streak[k]>=4&&lvl(k)<3){S.level[k]=lvl(k)+1;S.streak[k]=0;S.levelTrials[k]={at:lvl(k),n:0,right:0};setTimeout(()=>{toast('LEVEL UP! 🚀',1300);sfx.level();},900);}
+  }else{
+    S.streak[k]=0;S.miss[k]=assisted?0:(S.miss[k]||0)+1;
+    if(S.miss[k]>=2&&lvl(k)>1){S.level[k]=lvl(k)-1;S.miss[k]=0;S.levelTrials[k]={at:lvl(k),n:0,right:0};}
+  }
+  save();
+}
+function onCorrect(){ R.locked=true; const first=R.tries===0&&!R.hinted; if(R.tries===0) recordFirst(first,R.hinted); R.notes+=first?1:.5; if(!first) R.missed++;
   sfx.right(); const p=praise(); bubble(p); say(p);
   const v=$('#villainBox'); v.classList.remove('hit'); void v.offsetWidth; v.classList.add('hit');
   toast(first?'⭐ +1':'⭐ +½',700); updateMeter(); setTimeout(advance,1500); }
@@ -874,9 +1138,9 @@ function onWrong(btn){ if(R.tries===0) recordFirst(false); R.tries++; sfx.wrong(
   if(R.tries===1){ bubble(pick(["Almost! Here's a hint 💡",'Ooh, so close! Try again!',"Let's look again together!"])); showHint(); }
   else if(R.q.type!=='order') reveal();
   else { bubble('You can do it! Look at the tens!'); showNumLine(Math.max(0,Math.min(...R.q.nums)-1),Math.min(...R.q.nums)+21,R.q.nums); } }
-function showHint(){ const h=$('#hint'); h.innerHTML='💡 '+R.q.hint; h.classList.add('on'); if(R.q.onHint) R.q.onHint(); say(R.q.hintSay||h.textContent); }
+function showHint(){ R.hinted=true; const h=$('#hint'); h.innerHTML='💡 '+R.q.hint; h.classList.add('on'); if(R.q.onHint) R.q.onHint(); say(R.q.hintSay||h.textContent); }
 function reveal(){ R.locked=true; R.missed++;
-  document.querySelectorAll('#choices .choice').forEach(b=>{ const c=R.q.choices.find(c=>String(c.label)===b.textContent); if(c&&c.value===R.q.answer) b.classList.add('reveal'); });
+  document.querySelectorAll('#choices .choice').forEach(b=>{ const c=b.dataset.choiceIndex!==undefined?R.q.choices[Number(b.dataset.choiceIndex)]:R.q.choices.find(c=>String(c.label)===b.textContent); if(c&&c.value===R.q.answer) b.classList.add('reveal'); });
   const h=$('#hint'); h.innerHTML=R.q.solved?`🌟 Let's solve it together:<div class="steps">${R.q.solved.map((s,i)=>`<div>Step ${i+1}: ${s}</div>`).join('')}<div>Answer: <b>${R.q.answer}</b> 🎉</div></div>`:'🌟 '+R.q.explain; h.classList.add('on');
   bubble("That's okay! Mistakes help our brains grow 💜"); say('That is okay! '+h.textContent); $('#gotIt').classList.add('on'); }
 $('#gotIt').onclick=()=>{ sfx.tap(); advance(); };
@@ -932,7 +1196,7 @@ $('#pTheme').onchange=e=>{ S.theme=e.target.value; save(); applyTheme(S.theme); 
 $('#pNameSave').onclick=()=>{ const v=$('#pName').value.trim(); if(v){ S.name=cap(v); save(); $('#pWho').textContent=S.name; toast('Saved ✓',800);} };
 $('#pVoice').onchange=e=>{ DB.voice=e.target.checked; save(); };
 $('#pSound').onchange=e=>{ DB.sound=e.target.checked; save(); syncMute(); };
-$('#pReset').onclick=()=>{ if(confirm(`Reset all of ${S.name}'s stars, stickers and skill progress?`)){ Object.assign(S,{stars:{},stickers:[],stats:{},level:{},streak:{},miss:{}}); save(); renderParent(); } };
+$('#pReset').onclick=()=>{ if(confirm(`Reset all of ${S.name}'s stars, stickers and skill progress?`)){ Object.assign(S,{stars:{},stickers:[],stats:{},level:{},streak:{},miss:{},levelTrials:{},recent:[]}); save(); renderParent(); } };
 $('#pDelete').onclick=()=>{ if(confirm(`Delete ${S.name}'s player and all progress? This can't be undone.`)){ DB.profiles=DB.profiles.filter(p=>p.id!==S.id); DB.current=null; S=null; save(); renderWho(); } };
 
 /* ================= boot ================= */
