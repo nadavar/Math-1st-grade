@@ -31,6 +31,7 @@
 .tally-rest{font-family:monospace;letter-spacing:3px}.clock-choice .clock{width:110px!important;max-width:100%;margin:0 auto}
 .clock-choice{padding:8px!important}.clock-choice svg{display:block;width:100%;height:auto}
 
+[hidden]{display:none!important}
 :root{--bg-a:#5a1fa8;--bg-b:#2a1260;--bg-c:#140a2e;--pink:#ff4fa3;--gold:#ffc93c;--purple:#8b4fe8;--good:#2ed573;--ink:#1a1033}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;height:100%;font-family:'Fredoka',system-ui,sans-serif;color:var(--ink);overflow-x:hidden}
@@ -349,6 +350,11 @@ button{font-family:inherit;cursor:pointer;border:none}
     <div class="chk" id="pFocus"></div>
     <h3 class="ph3">How it's going</h3>
     <table class="ptable"><thead><tr><th>Skill</th><th>Level</th><th>Tries</th><th>First-try %</th></tr></thead><tbody id="pStats"></tbody></table>
+    <h3 class="ph3">Continue on another phone</h3>
+    <p class="pnote">Share all players’ saved stars, stickers and skill progress. This link includes player names; send it to someone you trust. It captures progress now. Phones do not sync automatically; share a fresh link after more play. An unfinished round starts over.</p>
+    <button class="big purple" id="pShare" style="font-size:21px">Share saved progress 🔗</button>
+    <p id="pShareStatus" role="status" aria-live="polite"></p>
+    <textarea id="pShareLink" hidden readonly aria-label="Saved progress link" style="width:100%;min-height:100px;font-size:16px;overflow-wrap:anywhere"></textarea>
     <h3 class="ph3">Device settings</h3>
     <div class="chk"><label><input type="checkbox" id="pVoice"> Read questions aloud</label><label><input type="checkbox" id="pSound"> Sound effects</label></div>
     <button class="link" id="pReset" style="color:#c2185b">Reset this player's progress</button>
@@ -357,6 +363,11 @@ button{font-family:inherit;cursor:pointer;border:none}
   </div>
 </section>
 
+<section class="screen" id="transfer"><div class="panel">
+<h2>Continue their adventures</h2><p id="transferStatus" role="status" aria-live="polite"></p>
+<button class="big purple" id="transferLoad" hidden>Load shared progress &amp; play</button>
+<button class="link" id="transferCancel">Keep this phone’s progress</button>
+</div></section>
 <script>
 /* ================= helpers ================= */
 const $=s=>document.querySelector(s);
@@ -1190,6 +1201,7 @@ function renderParent(){
   document.querySelectorAll('#pFocus input').forEach(i=>i.onchange=()=>{ S.focus=[...document.querySelectorAll('#pFocus input:checked')].map(x=>x.dataset.f); save(); });
   $('#pStats').innerHTML=Object.keys(SKILL_NAMES).map(k=>{ const st=S.stats[k],pct=st&&st.n?Math.round(st.r/st.n*100):null,col=pct===null?'#ddd':pct>=80?'#2ed573':pct>=60?'#ffc93c':'#ff6b81';
     return `<tr><td>${SKILL_NAMES[k]}</td><td>${'●'.repeat(lvl(k))}${'○'.repeat(3-lvl(k))}</td><td>${st?st.n:0}</td><td>${pct===null?'<span style="color:#aaa">not yet</span>':`<div style="display:flex;gap:8px;align-items:center"><div class="bar"><i style="width:${pct}%;background:${col}"></i></div>${pct}%</div>`}</td></tr>`; }).join('');
+  $('#pShareLink').hidden=true; $('#pShareLink').value=''; $('#pShareStatus').textContent='';
   $('#pVoice').checked=DB.voice; $('#pSound').checked=DB.sound;
 }
 $('#pTheme').onchange=e=>{ S.theme=e.target.value; save(); applyTheme(S.theme); toast(`${T().emoji} ${T().name}!`,900); };
@@ -1199,11 +1211,82 @@ $('#pSound').onchange=e=>{ DB.sound=e.target.checked; save(); syncMute(); };
 $('#pReset').onclick=()=>{ if(confirm(`Reset all of ${S.name}'s stars, stickers and skill progress?`)){ Object.assign(S,{stars:{},stickers:[],stats:{},level:{},streak:{},miss:{},levelTrials:{},recent:[]}); save(); renderParent(); } };
 $('#pDelete').onclick=()=>{ if(confirm(`Delete ${S.name}'s player and all progress? This can't be undone.`)){ DB.profiles=DB.profiles.filter(p=>p.id!==S.id); DB.current=null; S=null; save(); renderWho(); } };
 
+/* Progress links are snapshots; fragments are never sent in HTTP requests. */
+const SHARE_LIMIT=200000;
+function cleanSharedProfile(p){
+  if(!p||typeof p!=='object'||typeof p.id!=='string'||!/^p[\w-]{1,80}$/.test(p.id)||typeof p.name!=='string'||!p.name.trim()||p.name.length>80||!THEMES[p.theme]||!Object.hasOwn(THEMES,p.theme))throw Error('Invalid player');
+  const q={id:p.id,name:p.name.trim(),theme:p.theme,stars:{},stickers:[],stats:{},level:{},streak:{},miss:{},levelTrials:{},recent:[],focus:[]};
+  const integer=(x,max)=>Number.isInteger(x)&&x>=0&&x<=max;
+  for(const slot of SLOTS)if(integer(p.stars?.[slot.id],3))q.stars[slot.id]=p.stars[slot.id];
+  const stickers=new Set(Object.values(THEMES).flatMap(t=>t.stickers.map(s=>s[0])));
+  q.stickers=Array.isArray(p.stickers)?[...new Set(p.stickers.filter(s=>stickers.has(s)))]:[];
+  q.focus=Array.isArray(p.focus)?[...new Set(p.focus.filter(k=>Object.hasOwn(FOCUS_AREAS,k)))]:DEFAULT_FOCUS.slice();
+  for(const k of Object.keys(SKILL_NAMES)){
+    for(const field of ['level','streak','miss'])if(integer(p[field]?.[k],field==='level'?3:1000000))q[field][k]=p[field][k];
+    const st=p.stats?.[k];if(st&&integer(st.n,1000000)&&integer(st.r,st.n))q.stats[k]={n:st.n,r:st.r};
+    const tr=p.levelTrials?.[k];if(tr&&integer(tr.at,3)&&tr.at>=1&&integer(tr.n,1000000)&&integer(tr.right,tr.n))q.levelTrials[k]={at:tr.at,n:tr.n,right:tr.right};
+  }
+  return q;
+}
+function shareBytesToText(bytes){let s='';for(const b of bytes)s+=String.fromCharCode(b);return btoa(s).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');}
+async function makeProgressLink(){
+  if(!DB.profiles.length||DB.profiles.length>30)throw Error('Share supports 1–30 players.');
+  const data={v:1,at:new Date().toISOString(),current:DB.current,profiles:DB.profiles.map(cleanSharedProfile)};
+  let bytes=new TextEncoder().encode(JSON.stringify(data)),kind='j';
+  if(typeof CompressionStream!=='undefined'){bytes=new Uint8Array(await new Response(new Blob([bytes]).stream().pipeThrough(new CompressionStream('gzip'))).arrayBuffer());kind='z';}
+  const token=kind+shareBytesToText(bytes);if(token.length>60000)throw Error('This save is too large to share as a link.');
+  return location.origin+location.pathname+'#progress='+token;
+}
+async function readProgressToken(token){
+  if(typeof token!=='string'||token.length>60000||!(/^[jz][A-Za-z0-9_-]+$/).test(token))throw Error('Invalid link');
+  const raw=atob(token.slice(1).replace(/-/g,'+').replace(/_/g,'/'));let bytes=Uint8Array.from(raw,c=>c.charCodeAt(0));
+  if(token[0]==='z'){
+    if(typeof DecompressionStream==='undefined')throw Error('Please open this link in an updated browser.');
+    const reader=new Blob([bytes]).stream().pipeThrough(new DecompressionStream('gzip')).getReader();const chunks=[];let size=0;
+    try{while(true){const {value,done}=await reader.read();if(done)break;size+=value.length;if(size>SHARE_LIMIT)throw Error('Save too large');chunks.push(value);}}finally{await reader.cancel().catch(()=>{});}
+    bytes=new Uint8Array(size);let pos=0;for(const c of chunks){bytes.set(c,pos);pos+=c.length;}
+  }
+  if(bytes.length>SHARE_LIMIT)throw Error('Save too large');
+  const data=JSON.parse(new TextDecoder('utf-8',{fatal:true}).decode(bytes));
+  if(data.v!==1||!Array.isArray(data.profiles)||!data.profiles.length||data.profiles.length>30||typeof data.at!=='string'||!Number.isFinite(Date.parse(data.at)))throw Error('Unsupported save');
+  data.profiles=data.profiles.map(cleanSharedProfile);
+  if(new Set(data.profiles.map(p=>p.id)).size!==data.profiles.length)throw Error('Duplicate players');
+  data.current=data.profiles.some(p=>p.id===data.current)?data.current:data.profiles[0].id;return data;
+}
+function installProgressSnapshot(data){
+  const incoming=new Set(data.profiles.map(p=>p.id));
+  const next={...DB,profiles:[...DB.profiles.filter(p=>!incoming.has(p.id)),...data.profiles],current:data.current};
+  // Persist first: a full or blocked storage must not silently lose the transfer.
+  localStorage.setItem('mathShowdown',JSON.stringify(next));DB=next;S=DB.profiles.find(p=>p.id===DB.current);applyTheme(S.theme);renderMap();
+}
+async function openProgressLink(){
+  if(!(location.hash||'').startsWith('#progress='))return false;
+  show('transfer');$('#transferStatus').textContent='Reading shared progress…';
+  try{
+    const data=await readProgressToken(location.hash.slice(10));
+    history.replaceState(null,'',location.pathname+location.search);
+    const names=data.profiles.map(p=>p.name).join(', '),matches=data.profiles.filter(p=>DB.profiles.some(old=>old.id===p.id));
+    $('#transferStatus').textContent=`Saved ${new Date(data.at).toLocaleString()}. Players: ${names}. Stars, stickers, skill levels and practice settings will be loaded. ${matches.length?'This replaces the saved progress for matching players on this phone. Other players stay.':'Existing players on this phone stay.'} Later play is saved separately on each phone.`;
+    $('#transferLoad').hidden=false;$('#transferLoad').onclick=()=>{try{installProgressSnapshot(data);$('#transferLoad').hidden=true;}catch(e){$('#transferStatus').textContent='Your browser could not save this progress. Allow website storage and try again.';}};
+  }catch(e){history.replaceState(null,'',location.pathname+location.search);$('#transferStatus').textContent='This progress link could not be opened. It may be incomplete or require an updated browser. Ask for a fresh link.';}
+  return true;
+}
+$('#transferCancel').onclick=()=>renderWho();
+$('#pShare').onclick=async()=>{
+  const button=$('#pShare');button.disabled=true;$('#pShareStatus').textContent='Creating link…';$('#pShareLink').hidden=true;
+  try{
+    const url=await makeProgressLink();$('#pShareLink').value=url;$('#pShareLink').hidden=false;
+    if(navigator.share){try{await navigator.share({title:'Math Showdown saved progress',text:'Open this link to continue the kids’ math adventures.',url});$('#pShareStatus').textContent='Link ready. Share a fresh link after more play.';return;}catch(e){ /* Keep the copyable link available if sharing is cancelled. */ }}
+    try{await navigator.clipboard.writeText(url);$('#pShareStatus').textContent='Link copied! Paste it into a message to share.';}
+    catch(e){$('#pShareStatus').textContent='Copy the link below and send it in a message.';$('#pShareLink').focus();$('#pShareLink').select();}
+  }catch(e){$('#pShareStatus').textContent=e.message||'Could not create the link. Please try again.';}finally{button.disabled=false;}
+};
+
 /* ================= boot ================= */
 if('serviceWorker' in navigator && location.protocol==='https:'){ window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{})); }
 initSky(); syncMute();
 if(S){ applyTheme(S.theme); }
-renderWho();
+openProgressLink().then(opened=>{if(!opened)renderWho();});
 </script>
 </body>
 </html>
