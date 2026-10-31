@@ -238,6 +238,22 @@ button{font-family:inherit;cursor:pointer;border:none}
   .qcard{padding:14px 12px 16px}
   .obj{font-size:22px}.objrow{gap:2px}.objrow .gap{width:8px}
 }
+
+/* Worked examples stay still and available until the learner is ready. */
+.coach{margin-top:14px;padding-top:12px;border-top:2px solid #d9bf65;color:#31214b;line-height:1.45;font-size:clamp(17px,3.5vw,21px);overflow-wrap:anywhere}
+.coach h3,.coach h4{margin:6px 0 12px;color:#4a1d8f}.coach h3{font-size:22px}.coach p{margin:10px 0}.coach-equation{font-weight:700;font-size:24px;text-align:center}
+.coach-dots{display:grid;grid-template-columns:repeat(10, minmax(0,1fr));gap:4px;width:100%;max-width:400px;align-items:center;padding:8px 0}
+.coach-dots>span{grid-column:1/-1}
+.coach-dot{display:flex;align-items:center;justify-content:center;aspect-ratio:1;border:2px solid #205b83;border-radius:50%;background:#71d4ff;color:#fff;font-style:normal;font-size:clamp(16px,4vw,25px);font-weight:bold}
+.coach-dot.tone1{background:#ffc763;border-color:#8a4800}.coach-dot.tone2{background:#bfa3ef;border-color:#563080}.coach .crossed{background:#eee!important;border-color:#555!important;color:#8b1b1b!important}
+.coach-group{background:#fff;border-radius:12px;padding:10px;margin:8px 0}.coach-line{overflow-x:auto;max-width:100%;background:#fff;border-radius:12px;margin-top:12px}.coach-line svg{display:block;min-width:480px;width:100%}
+.coach-blocks{display:flex;gap:22px;flex-wrap:wrap;background:#fff;padding:12px;border-radius:12px;margin:10px 0}.coach-blocks>div{min-width:60px;max-width:100%}.coach-blocks p{font-size:17px;font-weight:600}
+.coach-rods{display:flex;flex-wrap:wrap;gap:7px}.coach-ten{display:flex;flex-direction:column;border:2px solid #205b83;background:#71d4ff}.coach-ten i{width:9px;height:8px;border-bottom:1px solid #205b83}.coach-ten i:last-child{border-bottom:0}
+.coach-units{display:flex;flex-wrap:wrap;gap:4px;max-width:220px}.coach-unit{display:flex;align-items:center;justify-content:center;width:18px;height:18px;border:2px solid #8a4800;background:#ffc763;font-size:19px;font-style:normal;font-weight:700}
+.coach-money{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}.coach-coin,.coach-bill{display:flex;align-items:center;justify-content:center;flex-direction:column;min-width:60px;min-height:60px;border:2px solid #725500;border-radius:50%;background:#ffebac;font-weight:600;padding:8px}.coach-bill{border-radius:5px;background:#d8f5d4;border-color:#2c6725}.coach-money small{font-size:14px}
+.coach-open{display:block;margin:12px auto;padding:14px 20px;border-radius:16px;background:#4a1d8f;color:#fff;font-size:21px;font-weight:600;min-height:48px}.coach-open:focus-visible{outline:3px solid #a83b00;outline-offset:3px}
+.coach-step+.coach-step{margin-top:20px;border-top:2px solid #d9bf65;padding-top:10px}.coach .clock{max-width:190px;margin:12px auto}
+
 </style>
 </head>
 <body>
@@ -307,7 +323,8 @@ button{font-family:inherit;cursor:pointer;border:none}
     <div class="qtext" id="qText"></div>
     <div class="visual" id="visual"></div>
     <div class="choices" id="choices"></div>
-    <div class="hint" id="hint"></div>
+    <div class="hint" id="hint" aria-live="polite"></div>
+    <button class="coach-open" id="explainBtn" hidden>Show me how 🔎</button>
     <button class="gotit" id="gotIt">Got it! ➜</button>
   </div>
 </section>
@@ -691,7 +708,7 @@ const C=v=>({label:String(v),value:v});
 const GEN={
   count(L){ const n=L===1?rnd(4,10):L===2?rnd(11,20):rnd(21,40), emo=pick(T().things);
     return {text:`How many ${emo} do you see?`, say:'How many do you see? Tap each one as you count!', visual:objGrid(n,emo)+'<div class="tapnote">Tap each one to count it</div>',
-      choices:numChoices(n,3,1,60,[n+1,n-1,n+10,n-10]).map(C), answer:n, tappable:true,
+      choices:numChoices(n,3,1,60,[n+1,n-1,n+10,n-10]).map(C), answer:n, tappable:true, coach:{kind:'count',n},
       hint:'Tap each one as you count. Each full row has <b>10</b>, so you can count by tens first: 10, 20…', hintSay:'Tap each one as you count. Each full row has ten, so count the full rows by tens first.',
       explain:`There are <b>${n}</b>. ${n>=10?`${Math.floor(n/10)} full row${n>=20?'s':''} of 10 and ${n%10} more.`:''}`}; },
   next(L){ const max=L===1?20:L===2?60:119,min=L===1?1:L===2?15:55; let n=rnd(min,max); if(L>1&&Math.random()<.4) n=Math.min(max,Math.floor(n/10)*10+9);
@@ -724,22 +741,22 @@ const GEN={
       hint:'Look at the <b>tens</b> first. The number with fewer tens is smaller. If the tens match, look at the ones.', hintSay:'Look at the tens first. Fewer tens means smaller. If the tens are the same, look at the ones.',
       explain:`In order: <b>${sorted.join(', ')}</b>.`}; },
   build(L){ const t=L===1?rnd(1,2):L===2?rnd(1,5):rnd(2,9),o=rnd(L===1?0:1,9),n=t*10+o,pv=T().pv;
-    return {text:`What number do the ${pv.name} show?`, say:`What number do the ${pv.name} show? A ${pv.ten.toLowerCase()} is ten. A ${pv.one} is one.`,
+    return {coach:{kind:'place',n,t,o},text:`What number do the ${pv.name} show?`, say:`What number do the ${pv.name} show? A ${pv.ten.toLowerCase()} is ten. A ${pv.one} is one.`,
       visual:sticks(t,o,false)+`<div class="tapnote">${pv.ten} = 10 · ${pv.one} = 1</div>`, choices:numChoices(n,5,1,120,[o*10+t,t+o,n+10,n-10,n+1]).map(C), answer:n,
       hint:`Count the tens first: ${Array.from({length:t},(_,i)=>(i+1)*10).join(', ')}. Then count on the ones.`, hintSay:'Count the tens first, then count on the ones.',
       explain:`<b>${t}</b> ten${t===1?'':'s'} and <b>${o}</b> one${o===1?'':'s'} make <b>${n}</b>.`, onHint:()=>{$('#visual').innerHTML=sticks(t,o,true);}}; },
   tens(L){ const n=L===1?rnd(11,30):L===2?rnd(21,79):rnd(40,99),t=Math.floor(n/10),o=n%10,askT=Math.random()<.6||o===t,ans=askT?t:o;
-    return {text:`How many ${askT?'TENS':'ONES'} are in ${n}?`, visual:`<div class="eqn">${n}</div>`, choices:numChoices(ans,3,0,9,[askT?o:t,ans+1,n]).map(C), answer:ans,
+    return {coach:{kind:'place',n,t,o},text:`How many ${askT?'TENS':'ONES'} are in ${n}?`, visual:`<div class="eqn">${n}</div>`, choices:numChoices(ans,3,0,9,[askT?o:t,ans+1,n]).map(C), answer:ans,
       hint:`In ${n}, the first digit tells the <b>tens</b> and the last digit tells the <b>ones</b>.`, hintSay:`In ${n}, the first digit tells the tens and the last digit tells the ones.`,
       explain:`${n} is <b>${t}</b> tens and <b>${o}</b> ones.`, onHint:()=>{$('#visual').innerHTML=sticks(t,o,true);}}; },
   compare(L){ const max=L===1?20:L===2?60:100; let a=rnd(1,max),b=rnd(1,max);
     if(L>1&&Math.random()<.35){ const t=rnd(1,8),o=rnd(1,9); if(t!==o){a=t*10+o;b=o*10+t;} }
     if(L>1&&Math.random()<.1) b=a;
     if(L===1){ if(a===b)b=a+rnd(1,4); const ans=Math.max(a,b);
-      return {text:'Which number is MORE?', choices:shuffle([C(a),C(b)]), answer:ans, visual:'', hint:'The number that comes later when you count is more.', hintSay:'The number that comes later when you count is more.',
+      return {coach:{kind:'compare',a,b},text:'Which number is MORE?', choices:shuffle([C(a),C(b)]), answer:ans, visual:'', hint:'The number that comes later when you count is more.', hintSay:'The number that comes later when you count is more.',
         explain:`<b>${ans}</b> is more than ${Math.min(a,b)}.`, onHint:()=>showNumLine(Math.min(a,b)-1,Math.max(a,b)+1,[a,b])}; }
     const ans=a>b?'>':a<b?'<':'=';
-    return {text:'Which sign goes in the box?', say:`Which sign goes in the box? ${a}, blank, ${b}`, visual:`<div class="cmp"><span>${a}</span><span class="bx">?</span><span>${b}</span></div>`,
+    return {coach:{kind:'compare',a,b},text:'Which sign goes in the box?', say:`Which sign goes in the box? ${a}, blank, ${b}`, visual:`<div class="cmp"><span>${a}</span><span class="bx">?</span><span>${b}</span></div>`,
       choices:[C('>'),C('<'),C('=')], answer:ans,
       hint:'Look at the <b>tens</b> first. The open mouth always faces the BIGGER number. <b>&gt;</b> means greater than, <b>&lt;</b> means less than.', hintSay:'Look at the tens first. The open mouth always faces the bigger number.',
       explain:`${a} ${ans} ${b}. ${ans==='>'?`${a} is greater than ${b}.`:ans==='<'?`${a} is less than ${b}.`:'They are equal.'}`,
@@ -1118,7 +1135,7 @@ function nextQ(){
   const k=roundSkill(),q=freshQuestion(k);
   q.skill=k; R.q=q; R.tries=0; R.hinted=false; R.locked=false; R.orderPos=0; R.tapN=0;
   const qt=$('#qText'); qt.textContent=q.text; qt.classList.toggle('story',!!q.story);
-  $('#visual').innerHTML=q.visual||''; $('#hint').classList.remove('on'); $('#hint').innerHTML=''; $('#gotIt').classList.remove('on');
+  $('#explainBtn').hidden=true; $('#visual').innerHTML=q.visual||''; $('#hint').classList.remove('on'); $('#hint').innerHTML=''; $('#gotIt').classList.remove('on');
   const ch=$('#choices'); ch.innerHTML='';
   if(q.type==='order'){
     $('#visual').innerHTML=`<div style="width:100%"><div class="order-lbl"><span>${q.down?'biggest':'smallest'}</span><span>${q.down?'smallest':'biggest'}</span></div><div class="order-slots">${q.sorted.map(()=>'<div></div>').join('')}</div></div>`;
@@ -1149,10 +1166,11 @@ function onWrong(btn){ if(R.tries===0) recordFirst(false); R.tries++; sfx.wrong(
   if(R.tries===1){ bubble(pick(["Almost! Here's a hint 💡",'Ooh, so close! Try again!',"Let's look again together!"])); showHint(); }
   else if(R.q.type!=='order') reveal();
   else { bubble('You can do it! Look at the tens!'); showNumLine(Math.max(0,Math.min(...R.q.nums)-1),Math.min(...R.q.nums)+21,R.q.nums); } }
-function showHint(){ R.hinted=true; const h=$('#hint'); h.innerHTML='💡 '+R.q.hint; h.classList.add('on'); if(R.q.onHint) R.q.onHint(); say(R.q.hintSay||h.textContent); }
-function reveal(){ R.locked=true; R.missed++;
-  document.querySelectorAll('#choices .choice').forEach(b=>{ const c=b.dataset.choiceIndex!==undefined?R.q.choices[Number(b.dataset.choiceIndex)]:R.q.choices.find(c=>String(c.label)===b.textContent); if(c&&c.value===R.q.answer) b.classList.add('reveal'); });
-  const h=$('#hint'); h.innerHTML=R.q.solved?`🌟 Let's solve it together:<div class="steps">${R.q.solved.map((s,i)=>`<div>Step ${i+1}: ${s}</div>`).join('')}<div>Answer: <b>${R.q.answer}</b> 🎉</div></div>`:'🌟 '+R.q.explain; h.classList.add('on');
+function showHint(){ R.hinted=true; const h=$('#hint'); h.innerHTML='💡 '+R.q.hint+visualExplanation(R.q); h.classList.add('on'); $('#explainBtn').hidden=false; if(R.q.onHint) R.q.onHint(); say(R.q.hintSay||h.textContent); }
+$('#explainBtn').onclick=()=>{if(R&&!R.locked)reveal();};
+function reveal(){ R.locked=true; R.missed++; $('#explainBtn').hidden=true;
+  if(R.q.type!=='order')document.querySelectorAll('#choices .choice').forEach(b=>{ const c=b.dataset.choiceIndex!==undefined?R.q.choices[Number(b.dataset.choiceIndex)]:R.q.choices.find(c=>String(c.label)===b.textContent); if(c&&c.value===R.q.answer) b.classList.add('reveal'); });
+  const h=$('#hint'); h.innerHTML=R.q.solved?`🌟 Let's solve it together:<div class="steps">${R.q.solved.map((s,i)=>`<div>Step ${i+1}: ${s}</div>`).join('')}<div>Answer: <b>${R.q.answer}</b> 🎉</div></div>`:'🌟 '+R.q.explain; h.innerHTML+=visualExplanation(R.q,true); h.classList.add('on');
   bubble("That's okay! Mistakes help our brains grow 💜"); say('That is okay! '+h.textContent); $('#gotIt').classList.add('on'); }
 $('#gotIt').onclick=()=>{ sfx.tap(); advance(); };
 function choose(btn,val){ if(R.locked||btn.disabled)return; if(val===R.q.answer){ btn.classList.add('right'); onCorrect(); } else onWrong(btn); }
@@ -1176,7 +1194,7 @@ function finish(){
 $('#againBtn').onclick=()=>{ sfx.tap(); startStage(R.stage.id); };
 $('#toMapBtn').onclick=()=>{ sfx.tap(); renderMap(); };
 $('#homeBtn').onclick=()=>{ sfx.tap(); if('speechSynthesis' in window) speechSynthesis.cancel(); renderMap(); };
-$('#sayBtn').onclick=()=>{ const h=$('#hint'); say(h.classList.contains('on')?(R.q.hintSay||h.textContent)+'. '+(R.q.say||R.q.text):(R.q.say||R.q.text)); };
+$('#sayBtn').onclick=()=>{ const h=$('#hint'); say(h.classList.contains('on')?h.textContent+'. '+(R.q.say||R.q.text):(R.q.say||R.q.text)); };
 function syncMute(){ $('#muteBtn').textContent=DB.sound?'🎵':'🔇'; }
 $('#muteBtn').onclick=()=>{ DB.sound=!DB.sound; save(); syncMute(); if(DB.sound) sfx.tap(); };
 
@@ -1281,6 +1299,115 @@ $('#pShare').onclick=async()=>{
     catch(e){$('#pShareStatus').textContent='Copy the link below and send it in a message.';$('#pShareLink').focus();$('#pShareLink').select();}
   }catch(e){$('#pShareStatus').textContent=e.message||'Could not create the link. Please try again.';}finally{button.disabled=false;}
 };
+
+/* Concrete models use question operands, never the selected wrong answer. */
+function coachDots(n,cross=0,color=0){
+  return `<div class="coach-dots" role="img" aria-label="${n} counters, ${cross} crossed out">${Array.from({length:n},(_,i)=>`<i aria-hidden="true" class="coach-dot tone${color%3}${i>=n-cross?' crossed':''}">${i>=n-cross?'×':''}</i>`).join('')}${n===0?'<span>No counters (0)</span>':''}</div>`;
+}
+function coachBlocks(t,o,cross=0){
+  return `<div class="coach-blocks" role="img" aria-label="${t} tens and ${o} ones${cross?', take away '+cross+' ones':''}"><div><div class="coach-rods" aria-hidden="true">${Array.from({length:t},()=>'<span class="coach-ten">'+'<i></i>'.repeat(10)+'</span>').join('')}</div><p>${t} tens</p></div><div><div class="coach-units" aria-hidden="true">${Array.from({length:o},(_,i)=>`i${i>=o-cross?'x':''}`).map(c=>`<i class="coach-unit${c==='ix'?' crossed':''}">${c==='ix'?'×':''}</i>`).join('')}</div><p>${o} ones${cross?' · cross out '+cross:''}</p></div></div>`;
+}
+function coachLine(start,deltas){
+  const stops=[start];deltas.forEach(d=>stops.push(stops[stops.length-1]+d));
+  const lo=Math.min(...stops),hi=Math.max(...stops),span=Math.max(1,hi-lo),x=n=>24+(n-lo)*432/span;
+  let svg=`<svg viewBox="0 0 480 115" role="img" aria-label="Start at ${start}; ${deltas.map(d=>d>=0?'add '+d:'subtract '+(-d)).join('; ')}; land on ${stops[stops.length-1]}"><path d="M18 70H462" stroke="#4a1d8f" stroke-width="3"/>`;
+  for(let n=lo;n<=hi;n++){svg+=`<path d="M${x(n)} 65V76" stroke="#4a1d8f"/><text x="${x(n)}" y="100" text-anchor="middle" font-size="16">${n}</text>`;}
+  for(let i=0;i<deltas.length;i++){
+    const a=x(stops[i]),b=x(stops[i+1]);
+    if(a!==b)svg+=`<path d="M${a} 60Q${(a+b)/2} 6 ${b} 60" fill="none" stroke="#a83b00" stroke-width="3"/><path d="M${b-(b>a?8:-8)} 49L${b} 60L${b+(b>a?2:-2)} 47" fill="none" stroke="#a83b00" stroke-width="3"/>`;
+    svg+=`<text x="${(a+b)/2}" y="${a===b?35:20}" text-anchor="middle" font-size="17" fill="#763100">${deltas[i]>=0?'+':'−'}${Math.abs(deltas[i])}</text>`;
+  }
+  return '<div class="coach-line">'+svg+'</svg></div>';
+}
+function coachArithmetic(terms,subtract,solved){
+  const a=terms[0],b=terms[1],result=subtract?a-b:terms.reduce((s,n)=>s+n,0),large=Math.max(a,result)>20;
+  if(large){
+    const t=Math.floor(a/10),o=a%10,trade=subtract?b>o:o+b>=10;
+    let html=coachBlocks(t,o)+`<p>Start with ${a}: ${t} tens and ${o} ones. ${subtract?'Take away':'Add'} ${b} ones.</p>`;
+    if(!solved)return html+'<p>Can you make or trade a group of ten?</p>';
+    if(subtract){
+      if(trade)html+=`<p>Trade 1 ten for 10 ones. The amount stays ${a}.</p>`+coachBlocks(t-1,o+10);
+      html+=coachBlocks(t-(trade?1:0),o+(trade?10:0),b)+`<p>Cross out ${b} ones. Keep the tens and the ones left over.</p>`;
+    }else{
+      html+=coachBlocks(t,o+b)+`<p>${o} + ${b} = ${o+b} ones.</p>`;
+      if(trade)html+='<p>Trade 10 ones for 1 ten. The amount stays the same.</p>';
+    }
+    return html+coachBlocks(Math.floor(result/10),result%10)+`<p class="coach-equation">${a} ${subtract?'−':'+'} ${b} = ${result}</p>`;
+  }
+  if(subtract)return `<p>Start with ${a}. Cross out ${b}. Count the counters left.</p>`+coachDots(a,b)+(solved?coachLine(a,Array.from({length:b},()=>-1))+`<p class="coach-equation">${a} − ${b} = ${result}</p><p>Check: ${result} + ${b} = ${a}.</p>`:'');
+  return '<p>Each group is a number we are adding. Count them together.</p>'+terms.map((n,i)=>`<div class="coach-group"><b>${n}</b>${coachDots(n,0,i)}</div>`).join('')+(solved?coachLine(a,terms.slice(1).flatMap(n=>Array.from({length:n},()=>1)))+`<p class="coach-equation">${terms.join(' + ')} = ${result}</p>`:'<p>How many counters are there altogether?</p>');
+}
+function visualExplanation(q,solved=false){
+  const d=q.coach||q.audit;let html='';if(!d)return '';
+  if(d.kind==='add')html=coachArithmetic(d.terms,false,solved);
+  else if(d.kind==='sub')html=coachArithmetic([d.a,d.b],true,solved);
+  else if(d.kind==='story_one')html=coachArithmetic([d.a,d.b],d.sub,solved);
+  else if(d.kind==='story'){
+    const rows=(q.solved||[]).map(s=>s.match(/(\d+) ([+−]) (\d+) = (\d+)/)).filter(Boolean);
+    if(rows.length)html=rows.slice(0,solved?rows.length:1).map((m,i)=>`<div class="coach-step"><h4>Step ${i+1}</h4>${solved?'<p>'+esc(q.solved[i])+'</p>':''}${coachArithmetic([+m[1],+m[3]],m[2]==='−',solved)}</div>`).join('');
+  }
+  else if(d.kind==='missing_add'||d.kind==='missing_sub'){
+    const sub=d.kind==='missing_sub',parts=sub?[d.a,d.b,d.c]:[d.a,d.b,d.total],show=parts.map((n,i)=>i===d.pos&&!solved?'?':n);
+    html=`<p>The box stands for the missing number. Both sides must match.</p><p class="coach-equation">${show[0]} ${sub?'−':'+'} ${show[1]} = ${show[2]}</p>`;
+    if(solved)html+=coachArithmetic(parts.slice(0,2),sub,true)+`<p>The missing number is ${parts[d.pos]}.</p>`;
+    else html+='<p>Use “part + part = whole.” For subtraction, “whole − part = other part.”</p>';
+  }
+  else if(['place','expanded','regroup'].includes(d.kind)){
+    const t=Math.floor(d.n/10),o=d.n%10;
+    html='<p>Each long rod has 10 little blocks. Each single block is 1.</p>'+coachBlocks(t,o);
+    if(d.kind==='regroup'){
+      html+=`<p>Keep ${d.keep} tens. Trade the other ${t-d.keep} tens for ones.</p>`;
+      if(solved)html+=coachBlocks(d.keep,d.ones)+`<p>${o} + ${(t-d.keep)*10} = ${d.ones} ones. The total is still ${d.n}.</p>`;
+    }else if(solved)html+=`<p class="coach-equation">${t*10} + ${o} = ${d.n}</p>`;
+  }
+  else if(d.kind==='count')html='<p>Count each full group of 10 first. Then count the extras.</p>'+Array.from({length:Math.ceil(d.n/10)},(_,i)=>`<div class="coach-group">${coachDots(Math.min(10,d.n-i*10))}${solved?'<b>'+Math.min(d.n,(i+1)*10)+'</b>':''}</div>`).join('')+(solved?`<p>There are ${d.n} counters altogether.</p>`:'');
+  else if(d.kind==='compare'){
+    html='<p>Compare tens first. If they match, compare ones.</p>'+[d.a,d.b].map(n=>`<div class="coach-group"><h4>${n}</h4>${coachBlocks(Math.floor(n/10),n%10)}</div>`).join('');
+    if(solved)html+=`<p class="coach-equation">${d.a} ${d.a>d.b?'&gt;':d.a<d.b?'&lt;':'='} ${d.b}</p><p>${d.a===d.b?'They have the same amount.':'The open side of the sign faces the larger amount.'}</p>`;
+  }
+  else if(d.kind==='clock'){
+    html=clockSVG(d.h,d.m)+`<p>The long purple hand points to ${d.m?6:12}: ${d.m} minutes past the hour.</p><p>The short pink hand ${d.m?'has passed':'points to'} ${d.h}.${d.m?' The hour is still '+d.h+', until it reaches '+(d.h%12+1)+'.':''}</p>`;
+    if(solved)html+=`<p class="coach-equation">${d.h}:${d.m?'30':'00'}</p>`;
+  }
+  else if(d.kind==='coin_total'||d.kind==='bills'){
+    const bills=d.kind==='bills',groups=bills?[[d.tens,10,'$10'],[d.fives,5,'$5'],[d.ones,1,'$1']]:[[d.dimes,10,'10¢'],[d.nickels,5,'5¢'],[d.pennies,1,'1¢']];let running=0;
+    html='<p>Count the largest values first. Keep counting as you move to the next group.</p>';
+    groups.forEach(([n,value,label])=>{if(n)html+=`<div class="coach-money" role="img" aria-label="${n} ${label} ${bills?'bills':'coins'}">${Array.from({length:n},()=>{running+=value;return `<span class="${bills?'coach-bill':'coach-coin'}">${label}${solved?'<small>'+running+(bills?' dollars':'¢')+'</small>':''}</span>`;}).join('')}</div>`;});
+    if(!groups.some(g=>g[0]))html+='<p>There are no coins or bills, so the total is 0.</p>';
+    if(solved)html+=`<p>Total: ${bills?'$':''}${running}${bills?'':'¢'}.</p>`;
+  }
+  else if(d.kind==='tally'||d.kind==='pictograph'){
+    const values=d.kind==='tally'?[d.a,...(d.mode==='read'?[]:[d.b])]:d.values;
+    if(d.mode==='difference')html=coachArithmetic([Math.max(values[0],values[1]),Math.min(values[0],values[1])],true,solved);
+    else if(d.mode==='total')html=coachArithmetic(values,false,solved);
+    else html='<p>Count each item once.'+(d.kind==='tally'?' Each crossed bundle is 5.':' Each star is one choice.')+'</p>'+values.slice(0,d.mode==='read'?1:values.length).map((n,i)=>`<div class="coach-group"><b>${d.kind==='pictograph'?['Singing','Dancing','Drawing'][i]:'Tally marks'}</b>${coachDots(n)}</div>`).join('')+(solved?`<p>${d.mode==='most'?'The largest group has':'The group has'} ${d.mode==='most'?Math.max(...values):values[0]}.</p>`:'');
+  }
+  else if(d.kind==='eq'||d.kind==='equality_expr'){
+    const left=d.kind==='eq'?(d.reverse?d.shown:(d.sub?d.a-d.b:d.a+d.b)):d.left.reduce((s,n)=>s+n,0);
+    const right=d.kind==='eq'?(d.reverse?(d.sub?d.a-d.b:d.a+d.b):d.shown):d.right.reduce((s,n)=>s+n,0);
+    html='<p>The equals sign means the same amount on both sides.</p>'+[left,right].map((n,i)=>`<div class="coach-group"><h4>${i?'Right':'Left'} side</h4>${coachDots(n)}${solved?'<p>'+n+'</p>':''}</div>`).join('');
+    if(solved)html+=`<p>${left} ${left===right?'=':'≠'} ${right}. The statement is ${left===right?'true':'false'}.</p>`;
+  }
+  else if(d.kind==='shape'){
+    html=shapeSVG(d.k,'#71d4ff')+`<p>A straight side goes from one corner to the next. Count around the edge once.${d.k==='circle'?' A circle has no straight sides or corners.':''} Turning a shape does not change its sides or corners.</p>`;
+    if(solved)html+=`<p>A ${d.k} has ${SHAPES[d.k].sides} straight sides and ${SHAPES[d.k].sides} corners.</p>`;
+  }
+  else if(d.kind==='frac'){
+    const parts=d.parts||2;
+    html=d.mode==='size'?`<div class="fracs"><div class="frac">${fracSVG('rect',2,true)}</div><div class="frac">${fracSVG('rect',4,true)}</div></div><p>These wholes are the same size. Cutting one into more equal pieces makes each piece smaller. A half is larger than a fourth.</p>`:`<div class="frac">${fracSVG(d.shape,parts,true)}</div><p>This whole has ${parts} equal pieces. Each piece is the same size as the others. ${parts===2?'Two halves':'Four fourths'} put together make one whole.</p>`;
+    if(d.mode==='equal')html+='<p>Compare this equal-share example with the two choices above.</p>';
+  }
+  else if(d.kind==='measure'){
+    html=(q.visual||'')+`<p>Start at 0, not 1. Each space between two marks is one ${d.unit}. Count the spaces to the end of the object.</p>`;
+    if(solved)html+=`<p>The end lines up with ${d.n}, so the length is ${d.n} ${d.unit==='inch'?(d.n===1?'inch':'inches'):(d.n===1?'centimeter':'centimeters')}.</p>`;
+  }
+  else if(d.kind==='coins'){
+    html=`<p>A ${d.name} is worth ${d.value} cents.</p>`+coachDots(d.value);
+    if(d.dollar)html+='<p>One dollar is 100 cents. Keep adding the value of one coin until you reach 100.</p>'+(solved?`<p>${100/d.value} coins, each worth ${d.value} cents, make 100 cents.</p>`:'');
+  }
+  if(!html)return '';
+  return `<div class="coach"><h3>${solved?'Let’s work it out':'Let’s look at a picture'}</h3>${html}</div>`;
+}
 
 /* ================= boot ================= */
 if('serviceWorker' in navigator && location.protocol==='https:'){ window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{})); }
